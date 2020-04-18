@@ -11,7 +11,7 @@ namespace _10Bot.Modules
     {
         private readonly Color EMBED_MESSAGE_COLOR = new Color(120, 40, 40);
 
-        [Command("info"), AllowedChannelsService]
+        [Command("info")]
         public async Task Info()
         {
             await SendEmbeddedMessageAsync("Registration Successful!", "All roles have been applied if applicable.");

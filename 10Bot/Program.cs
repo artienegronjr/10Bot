@@ -16,7 +16,6 @@ namespace _10Bot
         private IConfigurationRoot _config;
         private DiscordSocketClient _client;
         private CommandService _commands;
-
         private IServiceProvider _services;
 
         static void Main(string[] args) => new Program().RunBotAsync().GetAwaiter().GetResult();
@@ -70,9 +69,10 @@ namespace _10Bot
             return Task.CompletedTask;
         }
 
-        public async Task RegisterCommandsAsync()
+        private async Task RegisterCommandsAsync()
         {
             _client.MessageReceived += HandleCommandAsync;
+            _commands.CommandExecuted += OnCommandExecutedAsync;
             await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
         }
 
@@ -84,13 +84,33 @@ namespace _10Bot
             //Ignore messages from other Discord bots.
             if (message.Author.IsBot) return;
 
-            int argPos = 0;
             //Set command prefix.
+            int argPos = 0;
             if (message.HasStringPrefix("!", ref argPos))
             {
                 var result = await _commands.ExecuteAsync(context, argPos, _services);
                 if (!result.IsSuccess) Console.WriteLine(result.ErrorReason);
             }
+        }
+
+        private async Task OnCommandExecutedAsync(Optional<CommandInfo> command, ICommandContext context, IResult result)
+        {
+            // We have access to the information of the command executed,
+            // the context of the command, and the result returned from the
+            // execution in this event.
+
+            // We can tell the user what went wrong
+            if (!string.IsNullOrEmpty(result?.ErrorReason))
+            {
+                await context.Channel.SendMessageAsync(result.ErrorReason);
+            }
+
+            // ...or even log the result (the method used should fit into
+            // your existing log handler)
+            var commandName = command.IsSpecified ? command.Value.Name : "A command";
+            await _client_Log(new LogMessage(LogSeverity.Info,
+                "CommandExecution",
+                $"{commandName} was executed at {DateTime.UtcNow}."));
         }
     }
 }

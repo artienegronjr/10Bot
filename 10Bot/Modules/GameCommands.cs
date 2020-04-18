@@ -1,25 +1,27 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Linq;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using _10Bot.Models;
 using _10Bot.Classes;
+using Microsoft.Extensions.Options;
+using _10Bot.Preconditions;
 
 namespace _10Bot.Modules
 {
     public class GameCommands : ModuleBase<SocketCommandContext>
     {
         private readonly EFContext db;
+        private readonly AppConfig appConfig;
 
-        public GameCommands()
+        public GameCommands(IOptions<AppConfig> appConfig)
         {
             db = new EFContext();
+            this.appConfig = appConfig.Value;
         }
 
-        [Command("register"), RequireRegisterChannel]
+        [Command("register"), RequireChannel("Register")]
         public async Task Register()
         {
             var userID = Context.User.Id;
@@ -47,7 +49,39 @@ namespace _10Bot.Modules
                 await SendEmbeddedMessageAsync("Registration failed.", "You've already registered as a member.", Colors.Danger);
         }
 
-        async Task SendEmbeddedMessageAsync(string title, string message, Color color)
+        [Command("queue"), RequireChannel("Lobby"), RequireRole("Registered")]
+        public async Task Queue()
+        {
+            //Find a lobby that's currently queuing, or create one if unable to find one.
+            GameLobby lobby;
+            if (Session.GameLobbies.Count == 0 || Session.AllLobbiesFull())
+                lobby = Session.CreateNewLobby();
+            else
+                lobby = Session.GetCurrentlyQueuingLobby();
+
+            var discordID = Context.User.Id;
+
+            //Only add user if they aren't already in queue.
+            if (!lobby.Players.Select(p => p.DiscordID).Contains(discordID) && !Session.IsInLobby(discordID))
+            {
+                var user = db.Users.Where(u => u.DiscordID == discordID).FirstOrDefault();
+                lobby.Players.Add(user);
+                await SendEmbeddedMessageAsync("", user.Username + " has joined the queue. [" + lobby.Players.Count + "/10]", Colors.Success);
+
+                //Pop queue if queue reaches maximum size.
+                if(lobby.Players.Count == appConfig.PlayersPerTeam * 2)
+                {
+                    await SendEmbeddedMessageAsync("", "Queue is full. Picking teams...", Colors.Info);
+                    lobby.PopQueue();
+
+
+                }
+            }
+            else
+                await SendEmbeddedMessageAsync("Command Failed", "You are already in an active queue.", Colors.Danger);
+        }
+
+        private async Task SendEmbeddedMessageAsync(string title, string message, Color color)
         {
             var embed = new EmbedBuilder()
                 .WithColor(color)

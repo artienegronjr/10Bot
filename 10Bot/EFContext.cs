@@ -11,6 +11,7 @@ namespace _10Bot
     public class EFContext : DbContext
     {
         public DbSet<User> Users { get; set; }
+        public DbSet<Map> Maps { get; set; }
 
         private AppConfig _appConfig;
 
