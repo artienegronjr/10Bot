@@ -4,23 +4,29 @@ using System.Text;
 using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
+using _10Bot.Classes;
 
 namespace _10Bot.Modules
 {
     public class InfoCommands : ModuleBase<SocketCommandContext>
     {
-        private readonly Color EMBED_MESSAGE_COLOR = new Color(120, 40, 40);
 
         [Command("info")]
         public async Task Info()
         {
-            await SendEmbeddedMessageAsync("Registration Successful!", "All roles have been applied if applicable.");
+            var message = "Captains have been picked." +
+                Environment.NewLine +
+                "First Captain: Test" +
+                Environment.NewLine +
+                "Second Captain: Test";
+
+            await SendEmbeddedMessageAsync("", message, Colors.Info);
         }
 
-        async Task SendEmbeddedMessageAsync(string title, string message)
+        private async Task SendEmbeddedMessageAsync(string title, string message, Color color)
         {
             var embed = new EmbedBuilder()
-                .WithColor(EMBED_MESSAGE_COLOR)
+                .WithColor(color)
                 .WithTitle(title)
                 .WithDescription(message)
                 .Build();

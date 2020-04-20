@@ -27,7 +27,7 @@ namespace _10Bot.Modules
             var userID = Context.User.Id;
             var userRecord = db.Users.Where(u => u.DiscordID == userID).FirstOrDefault();
 
-            if(userRecord == null)
+            if (userRecord == null)
             {
                 var user = Context.User;
 
@@ -66,19 +66,33 @@ namespace _10Bot.Modules
             {
                 var user = db.Users.Where(u => u.DiscordID == discordID).FirstOrDefault();
                 lobby.Players.Add(user);
-                await SendEmbeddedMessageAsync("", user.Username + " has joined the queue. [" + lobby.Players.Count + "/10]", Colors.Success);
+                await SendEmbeddedMessageAsync("", user.Username + " has joined the queue for Lobby #" + lobby.ID + ". [" + lobby.Players.Count + "/10]", Colors.Success);
 
                 //Pop queue if queue reaches maximum size.
-                if(lobby.Players.Count == appConfig.PlayersPerTeam * 2)
+                if (lobby.Players.Count == appConfig.PlayersPerTeam * 2)
                 {
                     await SendEmbeddedMessageAsync("", "Queue is full. Picking teams...", Colors.Info);
                     lobby.PopQueue();
 
+                    var message = "Captains have been picked for Lobby #" + lobby.ID + "." + Environment.NewLine +
+                        "Team #1 Captain: <@" + lobby.Captain1.DiscordID + ">" + Environment.NewLine +
+                        "Team #2 Captain: <@" + lobby.Captain2.DiscordID + ">" + Environment.NewLine +
+                        Environment.NewLine +
+                        "Remaining Players:" + Environment.NewLine +
+                        Environment.NewLine;
 
+                    foreach (var player in lobby.Players)
+                    {
+                        if (player.DiscordID != lobby.Captain1.DiscordID && player.DiscordID != lobby.Captain2.DiscordID)
+                            message += "<@" + player.DiscordID + ">" + Environment.NewLine;
+                    }
+
+                    await SendEmbeddedMessageAsync("Lobby #" + lobby.ID + " - Picking Teams", message, Colors.Info);
+                    await SendEmbeddedMessageAsync("", "First pick goes to <@" + lobby.Captain1.DiscordID + ">. Use the !pick command to select a player.", Colors.Info);
                 }
             }
             else
-                await SendEmbeddedMessageAsync("Command Failed", "You are already in an active queue.", Colors.Danger);
+                await SendEmbeddedMessageAsync("Command Failed", "You are already in an active lobby or queue.", Colors.Danger);
         }
 
         private async Task SendEmbeddedMessageAsync(string title, string message, Color color)

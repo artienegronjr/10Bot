@@ -50,7 +50,46 @@ namespace _10Bot.Classes
 
         public void ChooseCaptains()
         {
+            //Try to find captains with at least 15 games played...
+            var captainPool = Players.Where(p => (p.Wins + p.Losses) >= 15);
+            if (captainPool.Count() < 2)
+                captainPool = Players;
 
+            //Find at most five of the highest rated players in the Captain pool.
+            int num = Math.Min(captainPool.Count(), 5);
+            var orderList = captainPool.OrderByDescending(c => c.SkillRating).Take(num);
+
+            //First captain is randomly chosen.
+            int capt1Index = random.Next(orderList.Count());
+            Captain1 = orderList.ToList()[capt1Index];
+
+            //Second captain is the player closest in rating to the first captain.
+            int indexAbove = capt1Index - 1;
+            int indexBelow = capt1Index + 1;
+
+            double skillDiffAbove = double.MaxValue;
+            double skillDiffBelow = double.MaxValue;
+
+            var playerAbove = orderList.ElementAtOrDefault(indexAbove);
+            var playerBelow = orderList.ElementAtOrDefault(indexBelow);
+
+            if (playerAbove != null)
+                skillDiffAbove = Math.Abs(Captain1.SkillRating - playerAbove.SkillRating);
+            if (playerBelow != null)
+                skillDiffBelow = Math.Abs(Captain1.SkillRating - playerBelow.SkillRating);
+
+            if (skillDiffAbove < skillDiffBelow)
+                Captain2 = playerAbove;
+            else
+                Captain2 = playerBelow;
+
+            //Make sure Captain with lower rating has first pick.
+            if(Captain1.SkillRating > Captain2.SkillRating)
+            {
+                var temp = Captain1;
+                Captain1 = Captain2;
+                Captain2 = temp;
+            }
         }
 
         private void ChooseMap()
