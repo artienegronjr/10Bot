@@ -20,10 +20,12 @@ namespace _10Bot.Classes
         }
         public int ID { get; set; }
         public List<User> Players { get; set; }
+        public List<User> RemainingPlayers { get; set; }
         public List<User> Team1 { get; set; }
         public List<User> Team2 { get; set; }
         public User Captain1 { get; set; }
         public User Captain2 { get; set; }
+        public int PickTurn { get; set; }
         public Map Map { get; set; }
         public LobbyState State { get; set; }
 
@@ -45,6 +47,13 @@ namespace _10Bot.Classes
             ChooseCaptains();
             ChooseMap();
 
+            //Set remaining players.
+            RemainingPlayers = Players;
+            RemainingPlayers.Remove(Captain1);
+            RemainingPlayers.Remove(Captain2);
+
+            //Set pick turn and game state.
+            PickTurn = 1;
             State = LobbyState.PickingPlayers;
         }
 
@@ -90,6 +99,10 @@ namespace _10Bot.Classes
                 Captain1 = Captain2;
                 Captain2 = temp;
             }
+
+            //Add captains to their respective teams.
+            Team1.Add(Captain1);
+            Team2.Add(Captain2);
         }
 
         private void ChooseMap()
