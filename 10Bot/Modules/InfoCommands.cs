@@ -23,12 +23,24 @@ namespace _10Bot.Modules
             await SendEmbeddedMessageAsync("", message, Colors.Info);
         }
 
+        [Command("test")]
+        public async Task Test()
+        {
+            var message = "Test";
+
+            await SendEmbeddedMessageAsync("", message, Colors.Info);
+        }
+
+
+
         private async Task SendEmbeddedMessageAsync(string title, string message, Color color)
         {
             var embed = new EmbedBuilder()
-                .WithColor(color)
-                .WithTitle(title)
-                .WithDescription(message)
+                .WithColor(Colors.Info)
+                .WithTitle("Lobby #12 - Picking Players")
+                .AddField("Team 1", "Captain: Test" + Environment.NewLine + "Players: Test" + Environment.NewLine + "Test")
+                .AddField("Team 2", "Captain: Test" + Environment.NewLine + "Players: Test" + Environment.NewLine + "Test")
+                .AddField("Remaining Players", "Test" + Environment.NewLine + "Test")
                 .Build();
 
             await ReplyAsync("", false, embed);

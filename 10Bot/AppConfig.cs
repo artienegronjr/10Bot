@@ -7,6 +7,7 @@
 		public string ConnectionString { get; set; }
 		public ulong LobbyChannel { get; set; }
 		public ulong RegisterChannel { get; set; }
+		public ulong ScoreReportChannel { get; set; }
 		public string ChannelDisplayName { get; set; }
 		public int PlayersPerTeam { get; set; }
 		public bool UseRegionEU { get; set; }

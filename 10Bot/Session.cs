@@ -55,11 +55,11 @@ namespace _10Bot
             return null;
         }
 
-        public static bool IsInLobby(ulong discordID)
+        public static bool IsInOpenLobby(ulong discordID)
         {
             foreach(var lobby in GameLobbies)
             {
-                if (lobby.Players.Select(p => p.DiscordID).Contains(discordID))
+                if (lobby.Players.Select(p => p.DiscordID).Contains(discordID) && lobby.State != GameLobby.LobbyState.Complete)
                     return true;
             }
 
