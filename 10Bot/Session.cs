@@ -34,36 +34,46 @@ namespace _10Bot
 
             return lobby;
         }
-        public static bool AllLobbiesFull()
+        public static GameLobby GetQueuingLobby()
         {
-            for(var i = 0; i<GameLobbies.Count; i++)
-            {
-                if (GameLobbies[i].State == GameLobby.LobbyState.Queuing)
-                    return false;
-            }
-
-            return true;
-        }
-        public static GameLobby GetCurrentlyQueuingLobby()
-        {
+            //Find a lobby that's currently queuing. If unable to, create one.
             foreach(var lobby in GameLobbies)
             {
                 if (lobby.State == GameLobby.LobbyState.Queuing)
                     return lobby;
             }
 
-            return null;
+            return CreateNewLobby();
         }
-
-        public static bool IsInOpenLobby(ulong discordID)
+        public static bool IsInActiveLobby(ulong discordID)
         {
             foreach(var lobby in GameLobbies)
             {
-                if (lobby.Players.Select(p => p.DiscordID).Contains(discordID) && lobby.State != GameLobby.LobbyState.Complete)
+                if (lobby.State != GameLobby.LobbyState.Complete && lobby.Players.Select(p => p.DiscordID).Contains(discordID))
                     return true;
             }
 
             return false;
+        }
+        public static bool IsInQueueingLobby(ulong discordID)
+        {
+            foreach (var lobby in GameLobbies)
+            {
+                if (lobby.State == GameLobby.LobbyState.Queuing && lobby.Players.Select(p => p.DiscordID).Contains(discordID))
+                    return true;
+            }
+
+            return false;
+        }
+        public static GameLobby GetLobbyAbleToPickIn(ulong discordID)
+        {
+            foreach (var lobby in GameLobbies)
+            {
+                if (lobby.State == GameLobby.LobbyState.PickingPlayers && lobby.IsACaptain(discordID))
+                    return lobby;
+            }
+
+            return null;
         }
     }
 }

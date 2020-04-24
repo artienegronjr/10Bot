@@ -45,6 +45,47 @@ namespace _10Bot.Classes
             AwaitingConfirmation = false;
         }
 
+        public bool IsACaptain(ulong discordID)
+        {
+            if (Captain1.DiscordID == discordID || Captain2.DiscordID == discordID)
+                return true;
+            else
+                return false;
+        }
+
+        public bool IsTurnToPick(ulong discordID)
+        {
+            if ((discordID == Captain1.DiscordID && PickTurn == 1) || (discordID == Captain2.DiscordID && PickTurn == 2))
+                return true;
+            else
+                return false;
+        }
+
+        public bool IsAvailablePlayer(ulong discordID)
+        {
+            if (RemainingPlayers.Select(p => p.DiscordID).Contains(discordID))
+                return true;
+            else
+                return false;
+        }
+
+        public void PickPlayer(ulong captainID, ulong pickedPlayerID)
+        {
+            var player = RemainingPlayers.Where(p => p.DiscordID == pickedPlayerID).First();
+            if (captainID == Captain1.DiscordID)
+            {
+                Team1.Add(player);
+                RemainingPlayers.Remove(player);
+                PickTurn = 2;
+            }
+            else if (captainID == Captain2.DiscordID)
+            {
+                Team2.Add(player);
+                RemainingPlayers.Remove(player);
+                PickTurn = 1;
+            }
+        }
+
         public void PopQueue()
         {
             ChooseCaptains();
@@ -58,6 +99,30 @@ namespace _10Bot.Classes
             //Set pick turn and game state.
             PickTurn = 1;
             State = LobbyState.PickingPlayers;
+        }
+
+        public void RemovePlayerFromQueue(ulong discordID)
+        {
+            if (State != LobbyState.Queuing)
+                return;
+
+            var player = Players.Where(p => p.DiscordID == discordID).FirstOrDefault();
+            if (player != null)
+                Players.Remove(player);
+            else
+                return;
+        }
+
+        public void StartMatch()
+        {
+            var lastPlayer = RemainingPlayers.First();
+            if (PickTurn == 1)
+                Team1.Add(lastPlayer);
+            else
+                Team2.Add(lastPlayer);
+
+            RemainingPlayers.Remove(lastPlayer);
+            State = GameLobby.LobbyState.Reporting;
         }
 
         private void ChooseCaptains()
@@ -134,12 +199,6 @@ namespace _10Bot.Classes
 
         private void UpdatePlayerRatings()
         {
-            //foreach (var player in Players)
-            //{
-            //    player.PreviousSkillRating = player.SkillRating;
-            //}
-
-
             var calculator = new RatingCalculator(/* initVolatility, tau */);
 
             // Instantiate a RatingPeriodResults object.
