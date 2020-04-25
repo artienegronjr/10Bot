@@ -122,6 +122,24 @@ namespace _10Bot.Modules
             await SendEmbeddedMessageAsync("", playerName + " has left the queue. [" + lobby.Players.Count() + "/10].", Colors.Warning);
         }
 
+        [Command("kick"), RequireChannel("Lobby"), RequireRole("Admin")]
+        [Alias("k")]
+        public async Task Kick(IUser kickedPlayer)
+        {
+            var discordID = kickedPlayer.Id;
+            if (!Session.IsInQueueingLobby(discordID))
+            {
+                await SendEmbeddedMessageAsync("Command Failed", "This player is not in a queue.", Colors.Warning);
+                return;
+            }
+
+            var lobby = Session.GetQueuingLobby();
+            lobby.RemovePlayerFromQueue(discordID);
+
+            var playerName = db.Users.Where(u => u.DiscordID == discordID).Select(u => u.Username).First();
+            await SendEmbeddedMessageAsync("", playerName + " has been kicked from the queue. [" + lobby.Players.Count() + "/10].", Colors.Warning);
+        } 
+
         [Command("pick"), RequireChannel("Lobby"), RequireRole("Valorant")]
         [Alias("p")]
         public async Task Pick(IUser pickedPlayer)
