@@ -20,5 +20,8 @@ namespace _10Bot.Models
 
         [NotMapped]
         public bool HasAlreadyReported { get; set; }
+
+        [NotMapped]
+        public DateTime? QueuedAt { get; set; }
     }
 }

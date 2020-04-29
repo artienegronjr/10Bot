@@ -6,6 +6,7 @@ using _10Bot.Classes;
 using Discord;
 using Discord.WebSocket;
 using System.Linq;
+using _10Bot.Services;
 
 namespace _10Bot
 {
@@ -37,7 +38,7 @@ namespace _10Bot
         public static GameLobby GetQueuingLobby()
         {
             //Find a lobby that's currently queuing. If unable to, create one.
-            foreach(var lobby in GameLobbies)
+            foreach (var lobby in GameLobbies)
             {
                 if (lobby.State == GameLobby.LobbyState.Queuing)
                     return lobby;
@@ -47,7 +48,7 @@ namespace _10Bot
         }
         public static bool IsInActiveLobby(ulong discordID)
         {
-            foreach(var lobby in GameLobbies)
+            foreach (var lobby in GameLobbies)
             {
                 if (lobby.State != GameLobby.LobbyState.Complete && lobby.Players.Select(p => p.DiscordID).Contains(discordID))
                     return true;
@@ -74,6 +75,18 @@ namespace _10Bot
             }
 
             return null;
+        }
+        public static List<User> GetQueuedPlayers()
+        {
+            var queuedPlayers = new List<User>();
+            var lobby = GetQueuingLobby();
+
+            foreach (var player in lobby.Players)
+            {
+                queuedPlayers.Add(player);
+            }
+
+            return queuedPlayers;
         }
     }
 }
