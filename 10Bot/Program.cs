@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
+using _10Bot.Services;
 
 namespace _10Bot
 {
@@ -22,14 +23,16 @@ namespace _10Bot
 
         public async Task RunBotAsync()
         {
-            _config = BuildConfig();
+            
             _client = new DiscordSocketClient();
             _commands = new CommandService();
             _services = ConfigureServices();
+            _config = BuildConfig();
 
             _client.Log += _client_Log;
 
             var appConfig = _services.GetService<IOptions<AppConfig>>().Value;
+            var queueService = _services.GetService<QueueService>();
 
             await RegisterCommandsAsync();
             await _client.LoginAsync(TokenType.Bot, appConfig.DiscordBotToken);
@@ -41,8 +44,10 @@ namespace _10Bot
         private IServiceProvider ConfigureServices()
         {
             return new ServiceCollection()
+                .AddSingleton(new DiscordSocketClient())
                 .AddSingleton(_client)
                 .AddSingleton(_commands)
+                .AddSingleton<QueueService>()
                 .Configure<AppConfig>(options => _config.GetSection("AppConfig").Bind(options))
                 .BuildServiceProvider();
         }

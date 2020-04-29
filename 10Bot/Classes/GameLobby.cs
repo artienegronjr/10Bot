@@ -6,6 +6,7 @@ using Discord;
 using Discord.WebSocket;
 using System.Linq;
 using _10Bot.Glicko2;
+using _10Bot.Services;
 
 namespace _10Bot.Classes
 {
@@ -108,7 +109,10 @@ namespace _10Bot.Classes
 
             var player = Players.Where(p => p.DiscordID == discordID).FirstOrDefault();
             if (player != null)
+            {
+                player.QueuedAt = null;
                 Players.Remove(player);
+            }
             else
                 return;
         }
@@ -286,6 +290,14 @@ namespace _10Bot.Classes
                 db.Users.Update(player);
 
             db.SaveChanges();
+        }
+
+        public void ClearQueue()
+        {
+            if(State == LobbyState.Queuing)
+            {
+                Players.Clear();
+            }
         }
     }
 }
