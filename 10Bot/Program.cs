@@ -34,6 +34,8 @@ namespace _10Bot
             var appConfig = _services.GetService<IOptions<AppConfig>>().Value;
             var queueService = _services.GetService<QueueService>();
 
+            Session.AppConfig = appConfig;
+
             await RegisterCommandsAsync();
             await _client.LoginAsync(TokenType.Bot, appConfig.DiscordBotToken);
             await _client.StartAsync();

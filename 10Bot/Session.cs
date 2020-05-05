@@ -14,6 +14,7 @@ namespace _10Bot
     {
         public static List<GameLobby> GameLobbies { get; set; }
         public static int LobbiesCreated { get; set; }
+        public static AppConfig AppConfig { get; set; }
 
         static Session()
         {

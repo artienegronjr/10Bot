@@ -9,6 +9,7 @@ using _10Bot.Glicko2;
 using _10Bot.Services;
 using Microsoft.Extensions.Options;
 using Microsoft.EntityFrameworkCore.Internal;
+using Microsoft.Extensions.Configuration;
 
 namespace _10Bot.Classes
 {
@@ -36,14 +37,11 @@ namespace _10Bot.Classes
 
         private readonly EFContext db;
         private readonly Random random;
-        private readonly AppConfig appConfig;
 
-        public GameLobby(IOptions<AppConfig> appConfig)
+        public GameLobby()
         {
             db = new EFContext();
             random = new Random();
-            this.appConfig = appConfig.Value;
-
             Players = new List<User>();
             Team1 = new List<User>();
             Team2 = new List<User>();
@@ -334,7 +332,7 @@ namespace _10Bot.Classes
             if (State != LobbyState.PickingPlayers)
                 return false;
             
-            if (RemainingPlayers.Count() == ((appConfig.PlayersPerTeam * 2) - 2))
+            if (RemainingPlayers.Count() == ((Session.AppConfig.PlayersPerTeam * 2) - 2))
                 return true;
             else
                 return false;

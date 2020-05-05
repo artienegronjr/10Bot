@@ -13,12 +13,10 @@ namespace _10Bot.Modules
     public class GameCommands : ModuleBase<SocketCommandContext>
     {
         private readonly EFContext db;
-        private readonly AppConfig appConfig;
 
-        public GameCommands(IOptions<AppConfig> appConfig)
+        public GameCommands()
         {
             db = new EFContext();
-            this.appConfig = appConfig.Value;
         }
 
         [Command("register"), RequireChannel("Register")]
@@ -80,7 +78,7 @@ namespace _10Bot.Modules
             await SendEmbeddedMessageAsync("", user.Username + " has joined the queue for Lobby #" + lobby.ID + ". [" + lobby.Players.Count + "/10]", Colors.Success);
 
             //Pop queue if queue reaches maximum size.
-            if (lobby.Players.Count == appConfig.PlayersPerTeam * 2)
+            if (lobby.Players.Count == Session.AppConfig.PlayersPerTeam * 2)
             {
                 await SendEmbeddedMessageAsync("", "Queue is full. Picking teams...", Colors.Info);
                 lobby.PopQueue();
@@ -130,7 +128,7 @@ namespace _10Bot.Modules
             await SendEmbeddedMessageAsync("", user.Username + " has joined the queue for Lobby #" + lobby.ID + ". [" + lobby.Players.Count + "/10]", Colors.Success);
 
             //Pop queue if queue reaches maximum size.
-            if (lobby.Players.Count == appConfig.PlayersPerTeam * 2)
+            if (lobby.Players.Count == Session.AppConfig.PlayersPerTeam * 2)
             {
                 await SendEmbeddedMessageAsync("", "Queue is full. Picking teams...", Colors.Info);
                 lobby.PopQueue();
@@ -190,24 +188,6 @@ namespace _10Bot.Modules
             await SendEmbeddedMessageAsync("", playerName + " has been kicked from the queue. [" + lobby.Players.Count() + "/10].", Colors.Warning);
         }
 
-        [Command("fuckofffrank"), RequireChannel("Lobby"), RequireRole("Admin")]
-        [Alias("k")]
-        public async Task FuckOffFrank()
-        {
-            var discordID = db.Users.Where(x => x.Username == "getsomeual").Select(x => x.DiscordID).First();
-            if (!Session.IsInQueueingLobby(discordID))
-            {
-                await SendEmbeddedMessageAsync("Command Failed", "Frank is not in a queue.", Colors.Warning);
-                return;
-            }
-
-            var lobby = Session.GetQueuingLobby();
-            lobby.RemovePlayerFromQueue(discordID);
-
-            var playerName = db.Users.Where(u => u.DiscordID == discordID).Select(u => u.Username).First();
-            await SendEmbeddedMessageAsync("", playerName + " has been kicked from the queue. [" + lobby.Players.Count() + "/10].", Colors.Warning);
-        }
-
         [Command("clear"), RequireChannel("Lobby"), RequireRole("Admin")]
         public async Task Clear()
         {
@@ -215,6 +195,13 @@ namespace _10Bot.Modules
             lobby.ClearQueue();
 
             await SendEmbeddedMessageAsync("", "The queue for Lobby #" + lobby.ID + " has been cleared. [" + lobby.Players.Count() + "/10].", Colors.Warning);
+        }
+
+        [Command("status"), RequireChannel("Lobby")]
+        public async Task Status()
+        {
+            var lobby = Session.GetQueuingLobby();
+            await QueueStatusEmbeddedMessageAsync(lobby);
         }
 
         [Command("pick"), RequireChannel("Lobby"), RequireRole("Valorant")]
@@ -463,6 +450,27 @@ namespace _10Bot.Modules
                 .AddField("Map", map)
                 .AddField("Team 1", team1)
                 .AddField("Team 2", team2)
+                .Build();
+
+            await ReplyAsync("", false, embed);
+        }
+
+        private async Task QueueStatusEmbeddedMessageAsync(GameLobby lobby)
+        {
+            var players = "";
+
+            if(lobby.Players.Count == 0)
+                players = "No players in queue.";
+            else
+            {
+                foreach (var player in lobby.Players)
+                    players += "<@" + player.DiscordID + ">" + Environment.NewLine;
+            }
+
+            var embed = new EmbedBuilder()
+                .WithColor(Colors.Info)
+                .WithTitle("Lobby #" + lobby.ID + " - Currently Queuing")
+                .AddField("Players In Queue", players)
                 .Build();
 
             await ReplyAsync("", false, embed);
