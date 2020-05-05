@@ -7,6 +7,8 @@ using Discord.WebSocket;
 using System.Linq;
 using _10Bot.Glicko2;
 using _10Bot.Services;
+using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore.Internal;
 
 namespace _10Bot.Classes
 {
@@ -34,11 +36,13 @@ namespace _10Bot.Classes
 
         private readonly EFContext db;
         private readonly Random random;
+        private readonly AppConfig appConfig;
 
-        public GameLobby()
+        public GameLobby(IOptions<AppConfig> appConfig)
         {
             db = new EFContext();
-            this.random = new Random();
+            random = new Random();
+            this.appConfig = appConfig.Value;
 
             Players = new List<User>();
             Team1 = new List<User>();
@@ -70,19 +74,35 @@ namespace _10Bot.Classes
                 return false;
         }
 
-        public void PickPlayer(ulong captainID, ulong pickedPlayerID)
+        public void PickPlayer(ulong captainID, ulong pickedPlayerID, ulong pickedPlayer2ID = 0)
         {
-            var player = RemainingPlayers.Where(p => p.DiscordID == pickedPlayerID).First();
+            var player1 = RemainingPlayers.Where(p => p.DiscordID == pickedPlayerID).First();
+            var player2 = RemainingPlayers.Where(p => p.DiscordID == pickedPlayer2ID).FirstOrDefault();
+
             if (captainID == Captain1.DiscordID)
             {
-                Team1.Add(player);
-                RemainingPlayers.Remove(player);
+                Team1.Add(player1);
+                RemainingPlayers.Remove(player1);
+
+                if(player2 != null)
+                {
+                    Team1.Add(player2);
+                    RemainingPlayers.Remove(player2);
+                }
+
                 PickTurn = 2;
             }
             else if (captainID == Captain2.DiscordID)
             {
-                Team2.Add(player);
-                RemainingPlayers.Remove(player);
+                Team2.Add(player1);
+                RemainingPlayers.Remove(player1);
+
+                if(player2 != null)
+                {
+                    Team2.Add(player2);
+                    RemainingPlayers.Remove(player2);
+                }
+
                 PickTurn = 1;
             }
         }
@@ -100,6 +120,15 @@ namespace _10Bot.Classes
             //Set pick turn and game state.
             PickTurn = 1;
             State = LobbyState.PickingPlayers;
+        }
+
+        public void AddPlayerToQueue(User user)
+        {
+            if (State != LobbyState.Queuing)
+                return;
+
+            Players.Add(user);
+            user.QueuedAt = DateTime.Now;
         }
 
         public void RemovePlayerFromQueue(ulong discordID)
@@ -132,7 +161,7 @@ namespace _10Bot.Classes
         private void ChooseCaptains()
         {
             //Try to find captains with at least 15 games played...
-            var captainPool = Players.Where(p => (p.Wins + p.Losses) >= 15);
+            var captainPool = Players.Where(p => (p.Wins + p.Losses) >= 5);
             if (captainPool.Count() < 2)
                 captainPool = Players;
 
@@ -298,6 +327,17 @@ namespace _10Bot.Classes
             {
                 Players.Clear();
             }
+        }
+
+        public bool IsFirstPick()
+        {
+            if (State != LobbyState.PickingPlayers)
+                return false;
+            
+            if (RemainingPlayers.Count() == ((appConfig.PlayersPerTeam * 2) - 2))
+                return true;
+            else
+                return false;
         }
     }
 }

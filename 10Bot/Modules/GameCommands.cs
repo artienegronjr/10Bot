@@ -76,8 +76,57 @@ namespace _10Bot.Modules
             }
 
             //Add to queue.
-            lobby.Players.Add(user);
-            user.QueuedAt = DateTime.Now;
+            lobby.AddPlayerToQueue(user);
+            await SendEmbeddedMessageAsync("", user.Username + " has joined the queue for Lobby #" + lobby.ID + ". [" + lobby.Players.Count + "/10]", Colors.Success);
+
+            //Pop queue if queue reaches maximum size.
+            if (lobby.Players.Count == appConfig.PlayersPerTeam * 2)
+            {
+                await SendEmbeddedMessageAsync("", "Queue is full. Picking teams...", Colors.Info);
+                lobby.PopQueue();
+
+                var message = "Captains have been picked for Lobby #" + lobby.ID + "." + Environment.NewLine +
+                    Environment.NewLine +
+                    "Team #1 Captain: <@" + lobby.Captain1.DiscordID + ">" + Environment.NewLine +
+                    "Team #2 Captain: <@" + lobby.Captain2.DiscordID + ">" + Environment.NewLine +
+                    Environment.NewLine +
+                    "Remaining Players:" + Environment.NewLine +
+                    Environment.NewLine;
+
+                foreach (var player in lobby.Players)
+                {
+                    if (player.DiscordID != lobby.Captain1.DiscordID && player.DiscordID != lobby.Captain2.DiscordID)
+                        message += "<@" + player.DiscordID + ">" + Environment.NewLine;
+                }
+
+                await SendEmbeddedMessageAsync("Lobby #" + lobby.ID + " - Picking Teams", message, Colors.Info);
+                await SendEmbeddedMessageAsync("", "First pick goes to <@" + lobby.Captain1.DiscordID + ">. Use the !pick command to select a player.", Colors.Info);
+            }
+        }
+
+        [Command("force"), RequireChannel("Lobby"), RequireRole("Admin")]
+        public async Task Force(IUser forcedPlayer)
+        {
+            GameLobby lobby = Session.GetQueuingLobby();
+            var discordID = forcedPlayer.Id;
+
+            //Only add user if they aren't already in queue...
+            if (Session.IsInActiveLobby(discordID))
+            {
+                await SendEmbeddedMessageAsync("Command Failed", "You are already in an active lobby or queue.", Colors.Danger);
+                return;
+            }
+
+            //Make sure user is registered in the database...
+            var user = db.Users.Where(u => u.DiscordID == discordID).FirstOrDefault();
+            if (user == null)
+            {
+                await SendEmbeddedMessageAsync("Command Failed", "You're not registered as a user. Please register in the Register channel.", Colors.Info);
+                return;
+            }
+
+            //Add to queue.
+            lobby.AddPlayerToQueue(user);
             await SendEmbeddedMessageAsync("", user.Username + " has joined the queue for Lobby #" + lobby.ID + ". [" + lobby.Players.Count + "/10]", Colors.Success);
 
             //Pop queue if queue reaches maximum size.
@@ -141,6 +190,24 @@ namespace _10Bot.Modules
             await SendEmbeddedMessageAsync("", playerName + " has been kicked from the queue. [" + lobby.Players.Count() + "/10].", Colors.Warning);
         }
 
+        [Command("fuckofffrank"), RequireChannel("Lobby"), RequireRole("Admin")]
+        [Alias("k")]
+        public async Task FuckOffFrank()
+        {
+            var discordID = db.Users.Where(x => x.Username == "getsomeual").Select(x => x.DiscordID).First();
+            if (!Session.IsInQueueingLobby(discordID))
+            {
+                await SendEmbeddedMessageAsync("Command Failed", "Frank is not in a queue.", Colors.Warning);
+                return;
+            }
+
+            var lobby = Session.GetQueuingLobby();
+            lobby.RemovePlayerFromQueue(discordID);
+
+            var playerName = db.Users.Where(u => u.DiscordID == discordID).Select(u => u.Username).First();
+            await SendEmbeddedMessageAsync("", playerName + " has been kicked from the queue. [" + lobby.Players.Count() + "/10].", Colors.Warning);
+        }
+
         [Command("clear"), RequireChannel("Lobby"), RequireRole("Admin")]
         public async Task Clear()
         {
@@ -152,7 +219,7 @@ namespace _10Bot.Modules
 
         [Command("pick"), RequireChannel("Lobby"), RequireRole("Valorant")]
         [Alias("p")]
-        public async Task Pick(IUser pickedPlayer)
+        public async Task Pick(IUser pickedPlayer, IUser pickedPlayer2 = null)
         {
             //Check if user is the captain of a lobby that's currently picking players.
             var discordID = Context.User.Id;
@@ -171,16 +238,38 @@ namespace _10Bot.Modules
                 return;
             }
 
-            //Check if player picked is available.
-            if (!lobby.IsAvailablePlayer(pickedPlayer.Id))
+            //If first pick, must pick one player.
+            if (lobby.IsFirstPick() && pickedPlayer2 != null)
             {
-                await SendEmbeddedMessageAsync("Command Failed", "Player is not available. Please choose a player from the Remaining Players list.", Colors.Danger);
+                await SendEmbeddedMessageAsync("Command Failed", "First pick must be one player!", Colors.Danger);
                 return;
             }
 
-            //Execute pick. (Captain, PickedPlayer)
-            lobby.PickPlayer(discordID, pickedPlayer.Id);
-            await SendEmbeddedMessageAsync("", "Picked <@" + pickedPlayer.Id + ">...", Colors.Success);
+            //If not first pick, must pick two players.
+            if(!lobby.IsFirstPick() && pickedPlayer2 == null)
+            {
+                await SendEmbeddedMessageAsync("Command Failed", "You must pick two players.", Colors.Danger);
+                return;
+            }
+
+            //Check if players are available.
+            if (!lobby.IsAvailablePlayer(pickedPlayer.Id) && (pickedPlayer2 == null ? true : !lobby.IsAvailablePlayer(pickedPlayer2.Id)))
+            {
+                await SendEmbeddedMessageAsync("Command Failed", "Player is not available. Please choose players from the Remaining Players list.", Colors.Danger);
+                return;
+            }
+
+            //Execute pick.
+            if(pickedPlayer2 == null) //Pick one player.
+            {
+                lobby.PickPlayer(discordID, pickedPlayer.Id);
+                await SendEmbeddedMessageAsync("", "Picked <@" + pickedPlayer.Id + ">...", Colors.Success);
+            }
+            else //Pick two players.
+            {
+                lobby.PickPlayer(discordID, pickedPlayer.Id, pickedPlayer2.Id);
+                await SendEmbeddedMessageAsync("", "Picked <@" + pickedPlayer.Id + "> and <@" + pickedPlayer2.Id + ">...", Colors.Success);
+            }
 
             //Start match once only one player is available.
             if (lobby.RemainingPlayers.Count == 1)
@@ -456,58 +545,6 @@ namespace _10Bot.Modules
                 .Build();
 
             await ReplyAsync("", false, embed);
-        }
-
-
-
-        [Command("force"), RequireChannel("Lobby"), RequireRole("Admin")]
-        public async Task Force(IUser playerr)
-        {
-            GameLobby lobby = Session.GetQueuingLobby();
-            var discordID = playerr.Id;
-
-            //Only add user if they aren't already in queue...
-            if (Session.IsInActiveLobby(discordID))
-            {
-                await SendEmbeddedMessageAsync("Command Failed", "You are already in an active lobby or queue.", Colors.Danger);
-                return;
-            }
-
-            //Make sure user is registered in the database...
-            var user = db.Users.Where(u => u.DiscordID == discordID).FirstOrDefault();
-            if (user == null)
-            {
-                await SendEmbeddedMessageAsync("Command Failed", "You're not registered as a user. Please register in the Register channel.", Colors.Info);
-                return;
-            }
-
-            //Add to queue.
-            lobby.Players.Add(user);
-            await SendEmbeddedMessageAsync("", user.Username + " has joined the queue for Lobby #" + lobby.ID + ". [" + lobby.Players.Count + "/10]", Colors.Success);
-
-            //Pop queue if queue reaches maximum size.
-            if (lobby.Players.Count == appConfig.PlayersPerTeam * 2)
-            {
-                await SendEmbeddedMessageAsync("", "Queue is full. Picking teams...", Colors.Info);
-                lobby.PopQueue();
-
-                var message = "Captains have been picked for Lobby #" + lobby.ID + "." + Environment.NewLine +
-                    Environment.NewLine +
-                    "Team #1 Captain: <@" + lobby.Captain1.DiscordID + ">" + Environment.NewLine +
-                    "Team #2 Captain: <@" + lobby.Captain2.DiscordID + ">" + Environment.NewLine +
-                    Environment.NewLine +
-                    "Remaining Players:" + Environment.NewLine +
-                    Environment.NewLine;
-
-                foreach (var player in lobby.Players)
-                {
-                    if (player.DiscordID != lobby.Captain1.DiscordID && player.DiscordID != lobby.Captain2.DiscordID)
-                        message += "<@" + player.DiscordID + ">" + Environment.NewLine;
-                }
-
-                await SendEmbeddedMessageAsync("Lobby #" + lobby.ID + " - Picking Teams", message, Colors.Info);
-                await SendEmbeddedMessageAsync("", "First pick goes to <@" + lobby.Captain1.DiscordID + ">. Use the !pick command to select a player.", Colors.Info);
-            }
         }
     }
 }

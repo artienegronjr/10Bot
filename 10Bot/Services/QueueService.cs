@@ -20,8 +20,8 @@ namespace _10Bot.Services
         {
             this.client = client;
             this.appConfig = appConfig.Value;
-            timer = new Timer(RunQueueCheck, null, 5000, 1000 * 60 * 15);
-            queueTimeout = TimeSpan.FromHours(1);
+            timer = new Timer(RunQueueCheck, null, 5000, 1000 * 60 * 15); //RunQueueCheck fires every 15 minutes.
+            queueTimeout = TimeSpan.FromHours(1); //Queue timeout set for one hour.
         }
 
         public void RunQueueCheck(object stateInfo = null)

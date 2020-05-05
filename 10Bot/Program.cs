@@ -9,6 +9,7 @@ using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using _10Bot.Services;
+using _10Bot.Classes;
 
 namespace _10Bot
 {
@@ -22,8 +23,7 @@ namespace _10Bot
         static void Main(string[] args) => new Program().RunBotAsync().GetAwaiter().GetResult();
 
         public async Task RunBotAsync()
-        {
-            
+        {          
             _client = new DiscordSocketClient();
             _commands = new CommandService();
             _services = ConfigureServices();
@@ -44,7 +44,6 @@ namespace _10Bot
         private IServiceProvider ConfigureServices()
         {
             return new ServiceCollection()
-                .AddSingleton(new DiscordSocketClient())
                 .AddSingleton(_client)
                 .AddSingleton(_commands)
                 .AddSingleton<QueueService>()
