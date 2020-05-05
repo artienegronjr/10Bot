@@ -5,42 +5,62 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.Commands;
 using _10Bot.Classes;
+using System.Linq;
+using _10Bot.Models;
 
 namespace _10Bot.Modules
 {
     public class InfoCommands : ModuleBase<SocketCommandContext>
     {
+        private readonly EFContext db;
 
-        [Command("info")]
-        public async Task Info()
+        public InfoCommands()
         {
-            var message = "Captains have been picked." +
-                Environment.NewLine +
-                "First Captain: Test" +
-                Environment.NewLine +
-                "Second Captain: Test";
-
-            await SendEmbeddedMessageAsync("", message, Colors.Info);
+            db = new EFContext();
         }
 
-        [Command("test")]
-        public async Task Test()
+        [Command("profile"), RequireContext(ContextType.DM)]
+        public async Task Profile()
         {
-            var message = "Test";
+            var userID = Context.User.Id;
+            var userRecord = db.Users.Where(u => u.DiscordID == userID).FirstOrDefault();
 
-            await SendEmbeddedMessageAsync("", message, Colors.Info);
+            if (userRecord == null)
+            {
+                await SendEmbeddedMessageAsync("Command Failed.", "You are not registered as a user.", Colors.Danger);
+                return;
+            }
+            else
+            {
+                await ProfileEmbeddedMessageAsync(userRecord);
+            }
+
         }
-
-
 
         private async Task SendEmbeddedMessageAsync(string title, string message, Color color)
         {
             var embed = new EmbedBuilder()
+                .WithColor(color)
+                .WithTitle(title)
+                .WithDescription(message)
+                .Build();
+
+            await ReplyAsync("", false, embed);
+        }
+
+        private async Task ProfileEmbeddedMessageAsync(User user)
+        {
+            var record = "Total Games: " + (user.Wins + user.Losses) + Environment.NewLine +
+                         "Wins: " + user.Wins + Environment.NewLine +
+                         "Losses: " + user.Losses + Environment.NewLine;
+
+            var rank = "Skill Rating: " + Convert.ToInt32(user.SkillRating);
+
+            var embed = new EmbedBuilder()
                 .WithColor(Colors.Info)
-                .WithTitle("Lobby #12 - Picking Players")
-                .AddField("Team 1", "Captain: Test" + Environment.NewLine + "Players: Test" + Environment.NewLine + "Test")
-                .AddField("Team 2", "Captain: Test" + Environment.NewLine + "Players: Test" + Environment.NewLine + "Test")
-                .AddField("Remaining Players", "Test" + Environment.NewLine + "Test")
+                .WithTitle("Player Profile")
+                .AddField("Record", record)
+                .AddField("Rank", rank)
                 .Build();
 
             await ReplyAsync("", false, embed);
