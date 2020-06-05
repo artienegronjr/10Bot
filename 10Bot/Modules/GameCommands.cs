@@ -240,7 +240,7 @@ namespace _10Bot.Modules
             }
 
             //Check if players are available.
-            if (!lobby.IsAvailablePlayer(pickedPlayer.Id) && (pickedPlayer2 == null ? true : !lobby.IsAvailablePlayer(pickedPlayer2.Id)))
+            if (!lobby.IsAvailablePlayer(pickedPlayer.Id) || !(pickedPlayer2 == null ? true : lobby.IsAvailablePlayer(pickedPlayer2.Id)))
             {
                 await SendEmbeddedMessageAsync("Command Failed", "Player is not available. Please choose players from the Remaining Players list.", Colors.Danger);
                 return;
