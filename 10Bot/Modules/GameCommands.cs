@@ -19,38 +19,6 @@ namespace _10Bot.Modules
             db = new EFContext();
         }
 
-        [Command("register"), RequireChannel("Register")]
-        public async Task Register()
-        {
-            var userID = Context.User.Id;
-            var userRecord = db.Users.Where(u => u.DiscordID == userID).FirstOrDefault();
-
-            if (userRecord != null)
-            {
-                await SendEmbeddedMessageAsync("Registration failed.", "You've already registered as a member.", Colors.Danger);
-                return;
-            }
-            else
-            {
-                var user = Context.User;
-                db.Users.Add(new User()
-                {
-                    DiscordID = user.Id,
-                    Username = user.Username,
-                    SkillRating = 1500,
-                    RatingsDeviation = 350,
-                    Volatility = 0.06
-                });
-
-                db.SaveChanges();
-
-                var registeredRole = Context.Guild.Roles.FirstOrDefault(r => r.Name == "Valorant");
-                await (Context.User as IGuildUser).AddRoleAsync(registeredRole);
-                await SendEmbeddedMessageAsync("Registration Successful!", "All roles have been applied if applicable.", Colors.Success);
-            }
-
-        }
-
         [Command("queue"), RequireChannel("Lobby"), RequireRole("Valorant")]
         [Alias("q")]
         public async Task Queue()

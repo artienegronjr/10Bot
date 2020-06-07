@@ -10,6 +10,10 @@ using Discord.Commands;
 using Discord.WebSocket;
 using _10Bot.Services;
 using _10Bot.Classes;
+using _10Bot.Modules;
+using System.Linq.Expressions;
+using System.Linq;
+using _10Bot.Models;
 
 namespace _10Bot
 {
@@ -19,22 +23,30 @@ namespace _10Bot
         private DiscordSocketClient _client;
         private CommandService _commands;
         private IServiceProvider _services;
+        private readonly EFContext db;
+
+        public Program()
+        {
+            db = new EFContext();
+        }
 
         static void Main(string[] args) => new Program().RunBotAsync().GetAwaiter().GetResult();
 
         public async Task RunBotAsync()
-        {          
+        {
             _client = new DiscordSocketClient();
             _commands = new CommandService();
             _services = ConfigureServices();
             _config = BuildConfig();
 
-            _client.Log += _client_Log;
+            _client.Log += _client_Log;            
 
             var appConfig = _services.GetService<IOptions<AppConfig>>().Value;
             var queueService = _services.GetService<QueueService>();
 
             Session.AppConfig = appConfig;
+
+            _client.ReactionAdded += HandleReactionAddedAsync;
 
             await RegisterCommandsAsync();
             await _client.LoginAsync(TokenType.Bot, appConfig.DiscordBotToken);
@@ -117,6 +129,57 @@ namespace _10Bot
             await _client_Log(new LogMessage(LogSeverity.Info,
                 "CommandExecution",
                 $"{commandName} was executed at {DateTime.UtcNow}."));
+        }
+
+        private async Task HandleReactionAddedAsync(Cacheable<IUserMessage, ulong> cachedMessage, ISocketMessageChannel originChannel, SocketReaction reaction)
+        {
+            //var message = await cachedMessage.GetOrDownloadAsync();
+            //if (message != null && reaction.User.IsSpecified)
+            //    Console.WriteLine($"{reaction.User.Value} just added a reaction '{reaction.Emote}' " +
+            //                      $"to {message.Author}'s message ({message.Id}).");
+
+            if (cachedMessage.Id != Session.AppConfig.RegisterMessageID)
+                return;
+
+            if (reaction.Emote.Name.Equals("💯"))
+            {
+                var userID = reaction.User.Value.Id;
+                var userRecord = db.Users.Where(u => u.DiscordID == userID).FirstOrDefault();
+
+                if (userRecord != null)
+                {
+                    await reaction.User.Value.SendMessageAsync("", false, new EmbedBuilder()
+                                                                              .WithColor(Colors.Danger)
+                                                                              .WithTitle("Registration Failed")
+                                                                              .WithDescription("You've already registered as a member.")
+                                                                              .Build());
+                    return;
+                }
+                else
+                {
+                    var user = reaction.User.Value;
+                    db.Users.Add(new User()
+                    {
+                        DiscordID = user.Id,
+                        Username = user.Username,
+                        SkillRating = 1500,
+                        RatingsDeviation = 350,
+                        Volatility = 0.06
+                    });
+
+                    db.SaveChanges();
+
+                    var channel = (SocketGuildChannel)originChannel;
+                    var registeredRole = channel.Guild.Roles.FirstOrDefault(r => r.Name == "Valorant");
+                    await (reaction.User.Value as IGuildUser).AddRoleAsync(registeredRole);
+
+                    await reaction.User.Value.SendMessageAsync("", false, new EmbedBuilder()
+                                                       .WithColor(Colors.Success)
+                                                       .WithTitle("Registration Successful!")
+                                                       .WithDescription("You've been granted access to the 10Bot queue.")
+                                                       .Build());
+                }
+            }
         }
     }
 }
