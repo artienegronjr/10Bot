@@ -7,6 +7,7 @@ using Discord.Commands;
 using _10Bot.Classes;
 using System.Linq;
 using _10Bot.Models;
+using System.IO;
 
 namespace _10Bot.Modules
 {
@@ -34,7 +35,6 @@ namespace _10Bot.Modules
             {
                 await ProfileEmbeddedMessageAsync(userRecord);
             }
-
         }
 
         private async Task SendEmbeddedMessageAsync(string title, string message, Color color)
