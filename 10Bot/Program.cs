@@ -34,6 +34,8 @@ namespace _10Bot
 
         public async Task RunBotAsync()
         {
+            //ayyy
+
             _client = new DiscordSocketClient();
             _commands = new CommandService();
             _services = ConfigureServices();
@@ -133,11 +135,6 @@ namespace _10Bot
 
         private async Task HandleReactionAddedAsync(Cacheable<IUserMessage, ulong> cachedMessage, ISocketMessageChannel originChannel, SocketReaction reaction)
         {
-            //var message = await cachedMessage.GetOrDownloadAsync();
-            //if (message != null && reaction.User.IsSpecified)
-            //    Console.WriteLine($"{reaction.User.Value} just added a reaction '{reaction.Emote}' " +
-            //                      $"to {message.Author}'s message ({message.Id}).");
-
             if (cachedMessage.Id != Session.AppConfig.RegisterMessageID)
                 return;
 
