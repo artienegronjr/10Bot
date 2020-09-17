@@ -34,8 +34,6 @@ namespace _10Bot
 
         public async Task RunBotAsync()
         {
-            //ayyy
-
             _client = new DiscordSocketClient();
             _commands = new CommandService();
             _services = ConfigureServices();
