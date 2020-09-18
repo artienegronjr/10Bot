@@ -1,5 +1,5 @@
 # 10Bot
-ayy
+
 
 
 [![Build Status](https://travis-ci.org/Falconerd/discord-bot-github.svg?branch=develop)](https://travis-ci.org/Falconerd/discord-bot-github)
