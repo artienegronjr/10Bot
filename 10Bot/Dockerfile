@@ -2,7 +2,7 @@
 
 FROM mcr.microsoft.com/dotnet/core/runtime:3.1-buster-slim AS base
 WORKDIR /app
-COPY ["10Bot/config.json", "app/"]
+COPY ["10Bot/config.json", "/app"]
 
 FROM mcr.microsoft.com/dotnet/core/sdk:3.1-buster AS build
 WORKDIR /src
