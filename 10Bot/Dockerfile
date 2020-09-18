@@ -5,7 +5,7 @@ WORKDIR /app
 
 FROM mcr.microsoft.com/dotnet/core/sdk:3.1-buster AS build
 WORKDIR /src
-COPY ["10Bot/10Bot.csproj", "10Bot/"]
+COPY ["10Bot/", "10Bot/"]
 RUN dotnet restore "10Bot/10Bot.csproj"
 COPY . .
 WORKDIR "/src/10Bot"
